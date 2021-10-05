@@ -49,7 +49,7 @@ export default defineWidget('LineChart.widget.LineChart', null, {
                 for (k = 0; k < maxpoints; k++) {
                     points.push(0);
                 }
-                logger.warn(this.id + ' - empty dataset');
+                this.warn(' - empty dataset');
                 continue;
             }
 

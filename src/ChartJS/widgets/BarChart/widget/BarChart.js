@@ -52,7 +52,7 @@ export default defineWidget('BarChart.widget.BarChart', null, {
                 for (k = 0; k < maxpoints; k++) {
                     points.push(0);
                 }
-                logger.warn(this.id + " - empty dataset");
+                this.warn(" - empty dataset");
                 continue;
             }
 

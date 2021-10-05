@@ -12,7 +12,7 @@ export default defineWidget('RadarChart.widget.RadarChart', null, {
     _chartClass: 'chartjs-radar-chart',
 
     _processData() {
-        logger.debug(this.id + '._processData');
+        this.log('._processData');
 
         let points = null;
         let set = {
@@ -51,7 +51,7 @@ export default defineWidget('RadarChart.widget.RadarChart', null, {
                 for (k = 0; k < maxpoints; k++) {
                     points.push(0);
                 }
-                logger.warn(this.id + ' - empty dataset');
+                this.warn(' - empty dataset');
                 continue;
             }
 
@@ -97,7 +97,7 @@ export default defineWidget('RadarChart.widget.RadarChart', null, {
     },
 
     _createChart(data) {
-        logger.debug(this.id + '._createChart');
+        this.log('._createChart');
 
         if (this._chart) {
             this._restartChart(data);
