@@ -1,4 +1,4 @@
-import defineWidget from 'widget-base-helpers/helpers/define-widget';
+import { defineWidget } from 'widget-base-helpers/helpers/define-widget';
 import Core from 'Core';
 import on from 'dojo/on';
 import { hitch } from 'dojo/_base/lang';

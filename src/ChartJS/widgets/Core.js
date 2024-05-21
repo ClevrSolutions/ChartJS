@@ -8,13 +8,10 @@
 
 import {
     defineWidget,
-    log,
-    runCallback,
-    executePromise,
-    execute,
     getData,
 } from 'widget-base-helpers';
 
+import Deferred from 'dojo/Deferred';
 import { clone, hitch, mixin } from 'dojo/_base/lang';
 import { set as styleSet } from 'dojo/dom-style';
 import { position } from 'dojo/dom-geometry';
@@ -37,6 +34,8 @@ export default defineWidget('Core', template, {
 
     // Set in the modeler
     responsiveRatio: 0,
+    progressBarType: "none",
+    microflowProgressString: "Loading",
 
     // Internal variables
     _chartJS: null,
@@ -62,15 +61,39 @@ export default defineWidget('Core', template, {
     _tooltipNode: null,
 
     constructor() {
-        this.log = log.bind(this);
-        this._executeCallback = runCallback.bind(this);
-        this._execute = execute.bind(this);
-        this._executePromise = executePromise.bind(this);
+    },
+
+    /**
+     * @param  {...any} args
+     */
+    log(...args) {
+        if (this.id) {
+            args.unshift(this.id);
+        }
+        if (mx && mx.logger && mx.logger.debug) {
+            // eslint-disable-next-line prefer-spread
+            mx.logger.debug.apply(mx.logger, args);
+        } else {
+            // eslint-disable-next-line prefer-spread
+            logger.debug.apply(logger, args);
+        }
+    },
+
+    warn(...args) {
+        if (this.id) {
+            args.unshift(this.id);
+        }
+        if (mx && mx.logger && mx.logger.warn) {
+            // eslint-disable-next-line prefer-spread
+            mx.logger.warn.apply(mx.logger, args);
+        } else {
+            // eslint-disable-next-line prefer-spread
+            logger.warn.apply(logger, args);
+        }
     },
 
     startup() {
         this.log('startup');
-
         // Activate chartJS (and clone it, making sure globals are not overwritten for other instances).
         this._chartJS = clone(ChartJS);
 
@@ -143,7 +166,7 @@ export default defineWidget('Core', template, {
         }
 
         if (this._mxObj) {
-            logger.debug(this.id + '.update obj ' + this._mxObj.getGuid());
+            this.log('.update obj ' + this._mxObj.getGuid());
 
             this._handle = this.subscribe({
                 guid: this._mxObj.getGuid(),
@@ -179,7 +202,7 @@ export default defineWidget('Core', template, {
                 this._data.datasets = [];
 
                 if (!guids) {
-                    logger.warn(this.id + '._loadData failed, no _dataset. Not rendering Chart');
+                    this.warn('._loadData failed, no _dataset. Not rendering Chart');
                     return;
                 }
 
@@ -266,18 +289,18 @@ export default defineWidget('Core', template, {
         if (mx.data.release && !mx.version || mx.version && 7 > parseInt(mx.version.split('.')[ 0 ], 10)) {
             // mx.data.release is deprecated in MX7, so this is for MX5 & MX6
             if (this._data && this._data.datasets && 0 < this._data.datasets.length) {
-                logger.debug(this.id + '.uninitialize release datasets');
+                this.log('.uninitialize release datasets');
                 for (let i = 0; i < this._data.datasets.length; i++) {
                     const data = this._data.datasets[ i ];
                     if (data.dataset && data.dataset.getGuid) {
-                        logger.debug(this.id + '.uninitialize release dataset obj ' + data.dataset.getGuid());
+                        this.log('.uninitialize release dataset obj ' + data.dataset.getGuid());
                         mx.data.release(data.dataset);
                     }
                     if (data.points && 0 < data.points.length) {
                         for (let j = 0; j < data.points.length; j++) {
                             const point = data.points[ j ];
                             if (point && point.getGuid) {
-                                logger.debug(this.id + '.uninitialize release datapoint ' + point.getGuid());
+                                this.log('.uninitialize release datapoint ' + point.getGuid());
                                 mx.data.release(point);
                             }
                         }
@@ -289,13 +312,13 @@ export default defineWidget('Core', template, {
                 if (this.onDestroyMf) {
                     try {
                         await this._executePromise(this.onDestroyMf, this._data.object && this._data.object.getGuid());
-                        logger.debug(this.id + '.uninitialize release obj ' + this._data.object.getGuid());
+                        this.log('.uninitialize release obj ' + this._data.object.getGuid());
                         mx.data.release(this._data.object);
                     } catch (error) {
                         console.error(this.id, error);
                     }
                 } else {
-                    logger.debug(this.id + '.uninitialize release obj ' + this._data.object.getGuid());
+                    this.log('.uninitialize release obj ' + this._data.object.getGuid());
                     mx.data.release(this._data.object);
                 }
             }
@@ -330,6 +353,97 @@ export default defineWidget('Core', template, {
         this._ctx = this.canvasNode.getContext('2d');
     },
 
+    _execute(microflow, guid, cb, errCb) {
+        if (microflow) {
+            this.log('execute microflow', 'mf: ' + microflow + ':' + guid);
+            const action = {
+                params: {
+                    actionname: microflow,
+                    applyto: 'selection',
+                    guids: [],
+                },
+                callback: hitch(this, res => {
+                    if (cb && 'function' == typeof cb) {
+                        cb(res);
+                    }
+                }),
+                error: hitch(this, error => {
+                    if (errCb && 'function' == typeof errCb) {
+                        errCb(error);
+                    } else {
+                        mx.ui.error('Error executing microflow ' + microflow + ' : ' + error.message);
+                        console.error(this.id + '._execMf', error);
+                    }
+                }),
+            };
+            if (guid) {
+                action.params.guids = [guid];
+            }
+            if (!mx.version || mx.version && 7 > parseInt(mx.version.split('.')[ 0 ], 10)) {
+                action.store = {
+                    caller: this.mxform,
+                };
+            } else {
+                action.origin = this.mxform;
+            }
+            mx.data.action(action, this);
+        }
+    },
+
+    _executeCallback(cb, from) {
+        this.log('_callback', from ? 'from ' + from : '');
+        if (cb && 'function' === typeof cb) {
+            cb();
+        }
+    },
+
+    /**
+     * Run a microflow as a promise
+     *
+     * @param {string} microflow Microflow name
+     * @param {string} [guid] Guid of Mendix object that is passed to the microflow
+     * @returns Promise
+     */
+    _executePromise(microflow, guid) {
+        const deferred = new Deferred();
+        this._execute(microflow, guid, deferred.resolve, deferred.reject);
+        return deferred.promise;
+    },
+
+    _executeWithProgress(microflow, guid, cb, errCb) {
+        // Wrap original function to add progress bar to all calls.
+        let callback = cb, errorCallback = errCb;
+        if ("blocking" === this.progressBarType || "regular" === this.progressBarType) {
+            this._progressId = mx.ui.showProgress(this.microflowProgressString || "", "blocking" === this.progressBarType);
+            callback = this._wrapCallback(cb);
+            errorCallback = this._wrapCallback(errCb);
+        }
+        this._execute(microflow, guid, callback, errorCallback);
+    },
+
+    _wrapCallback(cb) {
+        let callback = null;
+        if ("function" === typeof cb) {
+            callback = () => {
+                cb && cb();
+                this._hideProgress();
+            };
+        } else {
+            callback = () => {
+                this._hideProgress();
+            };
+        }
+        return callback;
+    },
+
+    _hideProgress() {
+        if (null !== this._progressId) {
+            this.log("Hide progress");
+            mx.ui.hideProgress(this._progressId);
+            this._progressId = null;
+        }
+    },
+
     _processData() {
         this.log('_processData needs to be replaced');
     },
@@ -356,16 +470,16 @@ export default defineWidget('Core', template, {
                     datasetObject = this._activeDatasets[ pointIndex ].obj;
                 }
 
-                this._execute(this.onclickDataSetMf, datasetObject && datasetObject.getGuid());
+                this._executeWithProgress(this.onclickDataSetMf, datasetObject && datasetObject.getGuid());
             }
 
             if (this.onclickDataPointMf && dataPointObject) {
-                this._execute(this.onclickDataPointMf, dataPointObject && dataPointObject.getGuid());
+                this._executeWithProgress(this.onclickDataPointMf, dataPointObject && dataPointObject.getGuid());
             }
         }
 
         if (this.onclickmf) {
-            this._execute(this.onclickmf, this._mxObj && this._mxObj.getGuid());
+            this._executeWithProgress(this.onclickmf, this._mxObj && this._mxObj.getGuid());
         }
     },
 
@@ -573,7 +687,7 @@ export default defineWidget('Core', template, {
                 return 'rgba(' + result.r + ',' + result.g + ',' + result.b + ',' + alpha + ')';
             }
         } else {
-            logger.warn('Empty hex color!');
+            this.warn('Empty hex color!');
         }
         return 'rgba(220,220,220,' + alpha + ')';
     },

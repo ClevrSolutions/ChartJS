@@ -1,4 +1,4 @@
-import defineWidget from 'widget-base-helpers/helpers/define-widget';
+import { defineWidget } from 'widget-base-helpers/helpers/define-widget';
 import BarChart from 'BarChart/widget/BarChart';
 
 import '../../ChartJS.scss';

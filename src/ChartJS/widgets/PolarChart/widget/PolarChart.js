@@ -1,4 +1,4 @@
-import defineWidget from 'widget-base-helpers/helpers/define-widget';
+import { defineWidget } from 'widget-base-helpers/helpers/define-widget';
 import Core from 'Core';
 import on from 'dojo/on';
 import { hitch } from 'dojo/_base/lang';
@@ -24,6 +24,7 @@ export default defineWidget('PolarChart.widget.PolarChart', null, {
         let label = '';
         let j = null;
 
+        this._activeDatasets = [];
         this._chartData.datasets = [];
         this._chartData.labels = [];
         const sets = this._data.datasets = this._sortArrayObj(this._data.datasets);

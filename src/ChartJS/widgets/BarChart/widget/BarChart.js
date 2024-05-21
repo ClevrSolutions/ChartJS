@@ -1,4 +1,4 @@
-import defineWidget from 'widget-base-helpers/helpers/define-widget';
+import { defineWidget } from 'widget-base-helpers/helpers/define-widget';
 import Core from 'Core';
 import on from 'dojo/on';
 import { hitch } from 'dojo/_base/lang';
@@ -31,6 +31,7 @@ export default defineWidget('BarChart.widget.BarChart', null, {
         let _set = null;
         let maxpoints = 0;
 
+        this._activeDatasets = [];
         this._chartData.datasets = [];
         this._chartData.labels = [];
 
@@ -51,7 +52,7 @@ export default defineWidget('BarChart.widget.BarChart', null, {
                 for (k = 0; k < maxpoints; k++) {
                     points.push(0);
                 }
-                logger.warn(this.id + " - empty dataset");
+                this.warn(" - empty dataset");
                 continue;
             }
 

@@ -1,4 +1,4 @@
-import defineWidget from 'widget-base-helpers/helpers/define-widget';
+import { defineWidget } from 'widget-base-helpers/helpers/define-widget';
 import PieChart from 'PieChart/widget/PieChart';
 
 import '../../ChartJS.scss';

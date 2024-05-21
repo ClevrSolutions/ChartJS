@@ -49,9 +49,9 @@ readDir(widgetDir)
         return widgetConfig.core || (!widgetConfig.core && file.indexOf('Core') === -1);
     })
     .forEach(e => {
-        const core = e.replace('.js', '');
+        const core = e.replace('.js', '').replace(/\\/g, "/");
         const obj = {};
-        entry[e.replace('.js', '')] = path.join(__dirname, widgetDir, e);
+        entry[ core ] = path.normalize(path.join(__dirname, widgetDir, e));
         obj[ core ] = `${packageName}/${widgetFolder}/${core}`;
         externals.push(obj);
     });

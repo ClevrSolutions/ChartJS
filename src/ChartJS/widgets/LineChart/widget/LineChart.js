@@ -1,4 +1,4 @@
-import defineWidget from 'widget-base-helpers/helpers/define-widget';
+import { defineWidget } from 'widget-base-helpers/helpers/define-widget';
 import Core from 'Core';
 import on from 'dojo/on';
 import { hitch } from 'dojo/_base/lang';
@@ -29,6 +29,7 @@ export default defineWidget('LineChart.widget.LineChart', null, {
         let _set = null;
         let maxpoints = 0;
 
+        this._activeDatasets = [];
         this._chartData.datasets = [];
         this._chartData.labels = [];
         const sets = this._data.datasets = this._sortArrayObj(this._data.datasets);
@@ -48,7 +49,7 @@ export default defineWidget('LineChart.widget.LineChart', null, {
                 for (k = 0; k < maxpoints; k++) {
                     points.push(0);
                 }
-                logger.warn(this.id + ' - empty dataset');
+                this.warn(' - empty dataset');
                 continue;
             }
 
